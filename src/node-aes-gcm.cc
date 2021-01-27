@@ -166,10 +166,10 @@ void GcmDecrypt(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   if (info.Length() < 5 || !cipher_type ||
       !Buffer::HasInstance(info[1]) || !Buffer::HasInstance(info[2]) ||
       !Buffer::HasInstance(info[3]) || !Buffer::HasInstance(info[4]) ||
-      Buffer::Length(info[4]) != 16) {
+      Buffer::Length(info[4]) == 0 || Buffer::Length(info[4])> AUTH_TAG_LEN) {
     Nan::ThrowError("decrypt requires a 16, 24 or 32-byte key Buffer, " \
                       "an IV Buffer, a ciphertext Buffer, an auth_data " \
-                      "Buffer and a 16-byte auth_tag Buffer parameter");
+                      "Buffer and a auth_tag Buffer parameter");
 	return;
   }
 
@@ -204,7 +204,7 @@ void GcmDecrypt(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                     (unsigned char *)Buffer::Data(info[2]) : plaintext,
                     (int)Buffer::Length(info[2]));
   // Set the input reference authentication tag
-  EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, AUTH_TAG_LEN,
+  EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, Buffer::Length(info[4]),
                     Buffer::Data(info[4]));
   // Finalize
   bool auth_ok = EVP_DecryptFinal_ex(ctx, plaintext + outl, &outl);
